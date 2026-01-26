@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mfp-academy-app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    ports:
+      - "8000:80"
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - DB_CONNECTION=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=mfp_academy
+      - DB_USERNAME=mfp_user
+      - DB_PASSWORD=mfp_password
+      - CACHE_STORE=database
+      - SESSION_DRIVER=database
+      - QUEUE_CONNECTION=database
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - mfp-network
+    volumes:
+      - ./storage:/var/www/html/storage
+
+  mysql:
+    image: mysql:8.0
+    container_name: mfp-academy-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: mfp_academy
+      MYSQL_USER: mfp_user
+      MYSQL_PASSWORD: mfp_password
+      MYSQL_ROOT_PASSWORD: root_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - mfp-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+networks:
+  mfp-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+    driver: local
