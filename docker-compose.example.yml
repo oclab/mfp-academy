@@ -1,0 +1,131 @@
+# Docker Compose Example for MFP Academy
+# This file demonstrates how to run the MFP Academy application with Docker Compose
+
+version: '3.8'
+
+services:
+  # Laravel Application
+  app:
+    image: ghcr.io/oclab/mfp-academy:latest
+    container_name: mfp-academy-app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    ports:
+      - "8000:80"
+    environment:
+      # Application Settings
+      - APP_NAME="MFP Academy"
+      - APP_ENV=production
+      - APP_KEY=base64:YOUR_APP_KEY_HERE  # Generate with: php artisan key:generate --show
+      - APP_DEBUG=false
+      - APP_URL=http://localhost:8000
+      
+      # Database Configuration
+      - DB_CONNECTION=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=mfp_academy
+      - DB_USERNAME=mfp_user
+      - DB_PASSWORD=mfp_password
+      
+      # Cache and Session
+      - CACHE_STORE=database
+      - SESSION_DRIVER=database
+      - QUEUE_CONNECTION=database
+      
+      # Mail Configuration (optional)
+      - MAIL_MAILER=smtp
+      - MAIL_HOST=mailhog
+      - MAIL_PORT=1025
+      - MAIL_USERNAME=null
+      - MAIL_PASSWORD=null
+      - MAIL_ENCRYPTION=null
+      - MAIL_FROM_ADDRESS="noreply@mfpacademy.com"
+      - MAIL_FROM_NAME="${APP_NAME}"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - mfp-network
+    volumes:
+      # Mount storage for persistent data
+      - ./storage:/var/www/html/storage
+
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: mfp-academy-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: mfp_academy
+      MYSQL_USER: mfp_user
+      MYSQL_PASSWORD: mfp_password
+      MYSQL_ROOT_PASSWORD: root_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - mfp-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # Optional: PHPMyAdmin for database management
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: mfp-academy-phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: mfp_user
+      PMA_PASSWORD: mfp_password
+    ports:
+      - "8080:80"
+    depends_on:
+      - mysql
+    networks:
+      - mfp-network
+
+  # Optional: MailHog for testing emails in development
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: mfp-academy-mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    networks:
+      - mfp-network
+
+networks:
+  mfp-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+    driver: local
+
+# Usage Instructions:
+# 
+# 1. Copy this file to docker-compose.yml
+# 2. Generate an application key:
+#    docker run --rm ghcr.io/oclab/mfp-academy:latest php artisan key:generate --show
+# 3. Update the APP_KEY in the environment variables above
+# 4. Start the services:
+#    docker-compose up -d
+# 5. Run database migrations:
+#    docker-compose exec app php artisan migrate --force
+# 6. (Optional) Seed the database:
+#    docker-compose exec app php artisan db:seed
+# 7. Access the application at http://localhost:8000
+# 8. (Optional) Access PHPMyAdmin at http://localhost:8080
+# 9. (Optional) Access MailHog UI at http://localhost:8025
+#
+# To stop the services:
+#    docker-compose down
+#
+# To stop and remove all data:
+#    docker-compose down -v
