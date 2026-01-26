@@ -1,5 +1,5 @@
 # Multi-stage build for Laravel application
-FROM php:8.2-fpm as base
+FROM php:8.2-fpm AS base
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -38,7 +38,7 @@ RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html/bootstrap/cache
 
 # Build stage for frontend assets
-FROM node:20-alpine as frontend
+FROM node:20-alpine AS frontend
 
 WORKDIR /app
 
@@ -46,7 +46,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install npm dependencies
-RUN npm ci
+RUN npm install
 
 # Copy source files needed for build
 COPY . .
