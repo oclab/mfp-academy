@@ -6,11 +6,19 @@ echo "Starting MFP Academy Application..."
 # Wait for MySQL to be ready
 if [ "$DB_CONNECTION" = "mysql" ]; then
     echo "Waiting for MySQL to be ready..."
-    until php artisan db:show 2>/dev/null; do
-        echo "MySQL is unavailable - sleeping"
+    max_retries=30
+    count=0
+    until php artisan migrate:status 2>/dev/null || [ $count -eq $max_retries ]; do
+        echo "MySQL is unavailable - sleeping (attempt $count/$max_retries)"
         sleep 2
+        count=$((count + 1))
     done
-    echo "MySQL is ready!"
+    
+    if [ $count -eq $max_retries ]; then
+        echo "Warning: Could not connect to MySQL after $max_retries attempts"
+    else
+        echo "MySQL is ready!"
+    fi
 fi
 
 # Run migrations if needed
